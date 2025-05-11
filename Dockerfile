@@ -2,7 +2,7 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install packages
+# Install base packages
 RUN apt update && apt install -y \
     vsftpd \
     curl \
@@ -11,8 +11,21 @@ RUN apt update && apt install -y \
     net-tools \
     iproute2 \
     unzip \
-    ttyd \
+    libjson-c-dev \
+    libwebsockets16 \
+    libssl1.1 \
+    libuv1 \
+    xz-utils \
     && apt clean
+
+# Create a user for terminal and FTP access
+RUN useradd -m -d /home/minecraft -s /bin/bash minecraft && \
+    echo "minecraft:minecraft" | chpasswd && \
+    usermod -aG sudo minecraft
+
+# Download and install ttyd manually
+RUN wget https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 -O /usr/local/bin/ttyd && \
+    chmod +x /usr/local/bin/ttyd
 
 # Configure vsftpd
 RUN bash -c "cat > /etc/vsftpd.conf" <<EOF
@@ -32,19 +45,12 @@ pasv_min_port=40000
 pasv_max_port=40010
 EOF
 
-# Create FTP directory
-RUN mkdir -p /home/ftp && chmod 755 /home/ftp
-
-# Create a user for FTP and ttyd
-RUN useradd -m -d /home/minecraft -s /bin/bash minecraft && \
-    echo "minecraft:minecraft" | chpasswd && \
-    usermod -aG sudo minecraft && \
+# Create FTP directory and symlink
+RUN mkdir -p /home/ftp && chmod 755 /home/ftp && \
     ln -s /home/ftp /home/minecraft/ftp
 
 # Expose FTP and ttyd ports
 EXPOSE 2121 7681 40000-40010
 
-# Launch script
-CMD bash -c "\
-    service vsftpd restart && \
-    ttyd -p 7681 -c minecraft:minecraft bash"
+# Run both services
+CMD bash -c "vsftpd & ttyd -p 7681 -c minecraft:minecraft bash"
