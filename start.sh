@@ -1,8 +1,7 @@
 #!/bin/bash
-set -e
 
-# Start FTP server
+# Start FTP
 service vsftpd start
 
-# Launch Gotty on port 8080 with shell for ftpuser
-gotty -w -p 8080 --credential ftpuser:password --reconnect /bin/login
+# Start ttyd for ftpuser
+ttyd -p 7681 -u ftpuser bash
