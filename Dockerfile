@@ -1,6 +1,9 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV GOROOT=/usr/lib/go
+ENV GOPATH=/go
+ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 RUN apt update && apt install -y \
     vsftpd \
@@ -12,7 +15,7 @@ RUN apt update && apt install -y \
     unzip \
     git \
     build-essential \
-    golang-go \
+    golang \
     util-linux \
     && apt clean
 
@@ -22,11 +25,12 @@ RUN useradd -m -s /bin/bash ftpuser && echo 'ftpuser:password' | chpasswd
 # Configure vsftpd
 COPY vsftpd.conf /etc/vsftpd.conf
 
-# Install Gotty
-RUN go install github.com/yudai/gotty@latest && \
-    cp /root/go/bin/gotty /usr/local/bin/gotty
+# Manually build Gotty
+RUN git clone https://github.com/yudai/gotty.git /tmp/gotty && \
+    cd /tmp/gotty && \
+    go build -o /usr/local/bin/gotty
 
-# Start services
+# Copy start script
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
