@@ -25,6 +25,9 @@ RUN apt update && apt install -y \
 # Add FTP user
 RUN useradd -m -s /bin/bash ftpuser && echo 'ftpuser:password' | chpasswd
 
+# Allow passwordless sudo (optional but useful in containers)
+RUN echo "ftpuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
 # Configure vsftpd
 COPY vsftpd.conf /etc/vsftpd.conf
 
