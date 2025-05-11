@@ -1,30 +1,43 @@
-FROM ubuntu:22.04
+#!/bin/bash
 
-# Avoid user prompts
-ENV DEBIAN_FRONTEND=noninteractive
+set -e
 
-# Install required packages
-RUN apt update && apt install -y \
-    openjdk-17-jre-headless \
-    curl wget sudo screen \
-    ttyd nano unzip iputils-ping net-tools && \
-    apt clean
+# Install vsftpd
+sudo apt update && sudo apt install -y vsftpd
 
-# Create non-root user for security
-RUN useradd -ms /bin/bash minecraft && echo "minecraft ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-USER minecraft
-WORKDIR /home/minecraft
+# Backup config
+sudo cp /etc/vsftpd.conf /etc/vsftpd.conf.bak
 
-# Download and prepare Paper server
-RUN mkdir server && cd server && \
-    curl -L -o paper.jar https://api.papermc.io/v2/projects/paper/versions/1.21.4/builds/1/downloads/paper-1.21.4-1.jar && \
-    echo "eula=true" > eula.txt
+# Write a minimal, container-friendly config
+sudo bash -c 'cat > /etc/vsftpd.conf' <<EOF
+listen=YES
+listen_port=2121
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+local_umask=022
+chroot_local_user=YES
+allow_writeable_chroot=YES
+seccomp_sandbox=NO
+pasv_enable=NO
+connect_from_port_20=NO
+EOF
 
-# Create start script
-RUN echo '#!/bin/bash\ncd ~/server\njava -Xms1G -Xmx2G -jar paper.jar nogui' > ~/start.sh && chmod +x ~/start.sh
+# Add a test user
+FTP_USER="ftpuser"
+FTP_PASS="ftp123"
+FTP_HOME="/home/$FTP_USER"
 
-# Expose Minecraft and web terminal ports
-EXPOSE 25565 6080
+sudo useradd -m -d "$FTP_HOME" -s /bin/bash "$FTP_USER"
+echo "$FTP_USER:$FTP_PASS" | sudo chpasswd
 
-# Start Minecraft in a detached screen and ttyd in foreground
-CMD screen -dmS mc bash ~/start.sh && ttyd -p 6080 bash
+# Ensure correct permissions
+sudo chown "$FTP_USER:$FTP_USER" "$FTP_HOME"
+
+# Restart FTP server
+sudo service vsftpd restart
+
+# Output
+echo "✅ FTP setup complete!"
+echo "➡️  Connect via: ftp 127.0.0.1 2121"
+echo "👤 Login: $FTP_USER / $FTP_PASS"
