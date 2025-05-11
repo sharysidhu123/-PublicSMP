@@ -1,10 +1,8 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV GOROOT=/usr/lib/go
-ENV GOPATH=/go
-ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
+# Install dependencies
 RUN apt update && apt install -y \
     vsftpd \
     curl \
@@ -15,24 +13,24 @@ RUN apt update && apt install -y \
     unzip \
     git \
     build-essential \
-    golang \
-    util-linux \
+    cmake \
+    pkg-config \
+    libjson-c-dev \
+    libwebsockets-dev \
+    libssl-dev \
+    libuv1-dev \
+    ttyd \
     && apt clean
 
-# Create user
+# Add FTP user
 RUN useradd -m -s /bin/bash ftpuser && echo 'ftpuser:password' | chpasswd
 
 # Configure vsftpd
 COPY vsftpd.conf /etc/vsftpd.conf
 
-# Manually build Gotty
-RUN git clone https://github.com/yudai/gotty.git /tmp/gotty && \
-    cd /tmp/gotty && \
-    go build -o /usr/local/bin/gotty
-
-# Copy start script
+# Start script
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 2121 8080
+EXPOSE 2121 7681
 CMD ["/start.sh"]
