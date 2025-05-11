@@ -2,32 +2,33 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install packages
 RUN apt update && apt install -y \
     vsftpd \
-    curl wget sudo git cmake g++ \
-    libjson-c-dev libwebsockets-dev \
-    libssl-dev libuv1-dev bash \
-    net-tools iproute2 unzip xz-utils \
+    curl \
+    wget \
+    sudo \
+    net-tools \
+    iproute2 \
+    unzip \
+    git \
+    build-essential \
+    golang-go \
+    util-linux \
     && apt clean
 
-# Set up FTP user
-RUN useradd -m -s /bin/bash ftpuser && \
-    echo "ftpuser:password" | chpasswd
+# Create user
+RUN useradd -m -s /bin/bash ftpuser && echo 'ftpuser:password' | chpasswd
 
 # Configure vsftpd
 COPY vsftpd.conf /etc/vsftpd.conf
 
-# Build ttyd from source
-RUN git clone https://github.com/tsl0922/ttyd.git && \
-    cd ttyd && mkdir build && cd build && \
-    cmake .. && make && make install && \
-    cd / && rm -rf ttyd
+# Install Gotty
+RUN go install github.com/yudai/gotty@latest && \
+    cp /root/go/bin/gotty /usr/local/bin/gotty
 
-# Add startup script
+# Start services
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 21 20 8080
-
+EXPOSE 2121 8080
 CMD ["/start.sh"]
