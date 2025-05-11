@@ -60,3 +60,5 @@ EXPOSE 2121 7681 40000-40010
 
 # Start vsftpd and ttyd together
 CMD bash -c "vsftpd & ttyd -p 7681 -c minecraft:minecraft bash"
+
+CMD ["ttyd", "-p", "8080", "bash"]
