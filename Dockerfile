@@ -1,43 +1,50 @@
-#!/bin/bash
+FROM ubuntu:20.04
 
-set -e
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install vsftpd
-sudo apt update && sudo apt install -y vsftpd
+# Install packages
+RUN apt update && apt install -y \
+    vsftpd \
+    curl \
+    wget \
+    sudo \
+    net-tools \
+    iproute2 \
+    unzip \
+    ttyd \
+    && apt clean
 
-# Backup config
-sudo cp /etc/vsftpd.conf /etc/vsftpd.conf.bak
-
-# Write a minimal, container-friendly config
-sudo bash -c 'cat > /etc/vsftpd.conf' <<EOF
+# Configure vsftpd
+RUN bash -c "cat > /etc/vsftpd.conf" <<EOF
 listen=YES
 listen_port=2121
-anonymous_enable=NO
+anonymous_enable=YES
 local_enable=YES
 write_enable=YES
-local_umask=022
-chroot_local_user=YES
-allow_writeable_chroot=YES
-seccomp_sandbox=NO
-pasv_enable=NO
-connect_from_port_20=NO
+dirmessage_enable=YES
+use_localtime=YES
+xferlog_enable=YES
+connect_from_port_20=YES
+secure_chroot_dir=/var/run/vsftpd/empty
+pam_service_name=vsftpd
+pasv_enable=YES
+pasv_min_port=40000
+pasv_max_port=40010
 EOF
 
-# Add a test user
-FTP_USER="ftpuser"
-FTP_PASS="ftp123"
-FTP_HOME="/home/$FTP_USER"
+# Create FTP directory
+RUN mkdir -p /home/ftp && chmod 755 /home/ftp
 
-sudo useradd -m -d "$FTP_HOME" -s /bin/bash "$FTP_USER"
-echo "$FTP_USER:$FTP_PASS" | sudo chpasswd
+# Create a user for FTP and ttyd
+RUN useradd -m -d /home/minecraft -s /bin/bash minecraft && \
+    echo "minecraft:minecraft" | chpasswd && \
+    usermod -aG sudo minecraft && \
+    ln -s /home/ftp /home/minecraft/ftp
 
-# Ensure correct permissions
-sudo chown "$FTP_USER:$FTP_USER" "$FTP_HOME"
+# Expose FTP and ttyd ports
+EXPOSE 2121 7681 40000-40010
 
-# Restart FTP server
-sudo service vsftpd restart
-
-# Output
-echo "✅ FTP setup complete!"
-echo "➡️  Connect via: ftp 127.0.0.1 2121"
-echo "👤 Login: $FTP_USER / $FTP_PASS"
+# Launch script
+CMD bash -c "\
+    service vsftpd restart && \
+    ttyd -p 7681 -c minecraft:minecraft bash"
