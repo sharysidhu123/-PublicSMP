@@ -2,28 +2,41 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install base packages
+# Set a default hostname
+ENV HOSTNAME=minecraft-server
+
+# Base packages
 RUN apt update && apt install -y \
-    vsftpd \
     curl \
     wget \
     sudo \
     net-tools \
     iproute2 \
     unzip \
-    libjson-c-dev \
-    libwebsockets16 \
-    libssl1.1 \
-    libuv1 \
     xz-utils \
-    && apt clean
+    ca-certificates && \
+    apt clean
 
-# Create a user for terminal and FTP access
+# Set hostname manually
+RUN echo "$HOSTNAME" > /etc/hostname && \
+    echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
+
+# Install vsftpd
+RUN apt install -y vsftpd
+
+# Add minecraft user
 RUN useradd -m -d /home/minecraft -s /bin/bash minecraft && \
     echo "minecraft:minecraft" | chpasswd && \
     usermod -aG sudo minecraft
 
-# Download and install ttyd manually
+# Manually install ttyd dependencies
+RUN mkdir -p /tmp/libs && cd /tmp/libs && \
+    wget http://archive.ubuntu.com/ubuntu/pool/universe/libj/libjson-c/libjson-c4_0.13.1+dfsg-7ubuntu1_amd64.deb && \
+    wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb && \
+    wget http://archive.ubuntu.com/ubuntu/pool/universe/libu/libuv1/libuv1_1.34.2-1ubuntu1_amd64.deb && \
+    dpkg -i *.deb || apt-get install -fy && rm -rf /tmp/libs
+
+# Install ttyd
 RUN wget https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 -O /usr/local/bin/ttyd && \
     chmod +x /usr/local/bin/ttyd
 
@@ -45,12 +58,12 @@ pasv_min_port=40000
 pasv_max_port=40010
 EOF
 
-# Create FTP directory and symlink
+# Setup FTP directory
 RUN mkdir -p /home/ftp && chmod 755 /home/ftp && \
     ln -s /home/ftp /home/minecraft/ftp
 
-# Expose FTP and ttyd ports
+# Expose ports
 EXPOSE 2121 7681 40000-40010
 
-# Run both services
+# Start services
 CMD bash -c "vsftpd & ttyd -p 7681 -c minecraft:minecraft bash"
