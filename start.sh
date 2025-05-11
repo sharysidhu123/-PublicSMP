@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# Start vsftpd in the background
+# Start FTP server
 service vsftpd start
 
-# Run ttyd with login shell (to allow interaction)
-ttyd -p 8080 --credential ftpuser:password login
+# Launch Gotty on port 8080 with shell for ftpuser
+gotty -w -p 8080 --credential ftpuser:password --reconnect /bin/login
