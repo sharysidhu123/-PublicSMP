@@ -1,39 +1,17 @@
 FROM ubuntu:22.04
-
+ 
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Install dependencies
-RUN apt update && apt install -y \
-    vsftpd \
-    curl \
-    wget \
-    sudo \
-    net-tools \
-    iproute2 \
-    unzip \
-    git \
-    build-essential \
-    cmake \
-    pkg-config \
-    libjson-c-dev \
-    libwebsockets-dev \
-    libssl-dev \
-    libuv1-dev \
-    ttyd \
-    && apt clean
-
-# Add FTP user
-RUN useradd -m -s /bin/bash ftpuser && echo 'ftpuser:password' | chpasswd
-
-# Allow passwordless sudo (optional but useful in containers)
-RUN echo "ftpuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Configure vsftpd
-COPY vsftpd.conf /etc/vsftpd.conf
-
-# Start script
+ 
+# Install tmate, tmux, Python for HTTP server, etc.
+RUN apt-get update && \
+    apt-get install -y tmate tmux curl openssh-client python3 tzdata && \
+    ln -fs /usr/share/zoneinfo/Asia/Kathmandu /etc/localtime && \
+    dpkg-reconfigure -f noninteractive tzdata
+ 
+# Copy the startup script
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
-
-EXPOSE 2121 7681
+ 
+EXPOSE 8080
+ 
 CMD ["/start.sh"]
