@@ -1,0 +1,12 @@
+{
+  "name": "mc-bot",
+  "version": "1.0.0",
+  "description": "Minecraft bot running on Railway",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.15.1"
+  }
+}
