@@ -1,17 +1,22 @@
-FROM ubuntu:22.04
- 
-ENV DEBIAN_FRONTEND=noninteractive
- 
-# Install tmate, tmux, Python for HTTP server, etc.
-RUN apt-get update && \
-    apt-get install -y tmate tmux curl openssh-client python3 tzdata && \
-    ln -fs /usr/share/zoneinfo/Asia/Kathmandu /etc/localtime && \
-    dpkg-reconfigure -f noninteractive tzdata
- 
-# Copy the startup script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
- 
-EXPOSE 8080
- 
-CMD ["/start.sh"]
+# Use Node.js base image
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files first (for caching install layers)
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the bot files
+COPY . .
+
+# Set environment variables if needed (optional)
+# ENV MC_HOST=example.com
+# ENV MC_PORT=25565
+# ENV MC_USERNAME=RailwayBot
+
+# Start the bot
+CMD ["npm", "start"]
